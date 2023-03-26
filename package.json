@@ -1,0 +1,18 @@
+{
+  "name": "webgldemo",
+  "version": "1.0.0",
+  "description": "webgl demo for Veikkaus",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --watch & web-dev-server --open build/ --node-resolve --watch"
+  },
+  "author": "Alexander Streng",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.15.9",
+    "@web/dev-server": "^0.1.36",
+    "gl-matrix": "^3.4.3"
+  }
+}
+

@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "es2020",
+        "outDir": "./build",
+        "rootDir": "./src",
+        "moduleResolution":"node",
+        "watch": true,
+        "lib": ["dom", "ES2018"],
+        "strict": true
+    },
+    "include": ["src", "./build/shaders/"]
+}
