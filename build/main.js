@@ -1,38 +1,16 @@
-import { RenderDevice, Pipeline, RenderPass } from './renderer/render_device.js';
+import { RenderDevice, Pipeline, RenderPass } from './renderer/render_device';
 import { mat4 } from 'gl-matrix';
-import { Mesh } from './resources/mesh.js';
+import { Mesh } from './resources/mesh';
+import exampleVsShader from './shaders/example.vert';
+import exampleFsShader from './shaders/example.frag';
 const device = new RenderDevice();
 const pipeline = new Pipeline();
 const main_renderpass = new RenderPass();
 const squares = [];
 function main() {
     device.init_renderer();
-    fetch('shader/example.vs')
-        .then(response => response.text())
-        .then(data => console.log(data))
-        .catch(error => console.error(error));
-    pipeline.v_source = `#version 300 es
-      in vec4 aVertexPosition;
-      in vec4 aVertexColor;
-      
-      uniform mat4 uModelViewMatrix;
-      uniform mat4 uProjectionMatrix;
-
-      out vec4 vColor;
-
-      void main(void) {
-        gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-        vColor = aVertexColor;
-      }
-    `;
-    pipeline.f_source = `#version 300 es
-    precision highp float;
-    in vec4 vColor;
-    out vec4 outColor;
-    void main(void) {
-      outColor = vColor;
-    }
-  `;
+    pipeline.v_source = exampleVsShader;
+    pipeline.f_source = exampleFsShader;
     pipeline.create_graphics_pipeline(device);
     pipeline.add_vertex_attribute(device, "vertexPosition", "aVertexPosition");
     pipeline.add_vertex_attribute(device, "vertexColor", "aVertexColor");

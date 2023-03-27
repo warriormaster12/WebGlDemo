@@ -1,4 +1,4 @@
-import { RenderBuffer } from '../renderer/render_device.js';
+import { RenderBuffer } from '../renderer/render_device';
 import { vec3 } from 'gl-matrix';
 export class Mesh {
     constructor(device) {

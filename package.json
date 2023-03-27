@@ -3,16 +3,25 @@
   "version": "1.0.0",
   "description": "webgl demo for Veikkaus",
   "main": "main.js",
-  "type": "module",
   "scripts": {
-    "build": "tsc --watch & web-dev-server --open build/ --node-resolve --watch"
+    "build": "webpack --config webpack.config.ts",
+    "start": "tsc src/ --watch & web-dev-server --open build/ --node-resolve --watch"
   },
   "author": "Alexander Streng",
   "license": "MIT",
   "devDependencies": {
+    "@types/copy-webpack-plugin": "^10.1.0",
     "@types/node": "^18.15.9",
+    "@types/webpack": "^5.28.0",
     "@web/dev-server": "^0.1.36",
-    "gl-matrix": "^3.4.3"
+    "copy-webpack-plugin": "^11.0.0",
+    "raw-loader": "^4.0.2",
+    "ts-loader": "^9.4.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.2",
+    "webpack": "^5.76.3",
+    "webpack-cli": "^5.0.1",
+    "@types/gl-matrix": "^2.4.5",
+    "gl-matrix": "^3.3.0"
   }
 }
-
