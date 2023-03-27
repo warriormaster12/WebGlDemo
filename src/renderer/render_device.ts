@@ -101,28 +101,49 @@ export class RenderBuffer{
     }
 }
 
+export enum DepthCompare{
+    LESS = 0,
+    LEQUAL = 1,
+    EQUAL = 2,
+    GEQUAL = 3,
+    GREATER = 4
+}
+
 export class RenderPass{
-    info:any = {
-        depth: false,
-        color: false,
-        depth_value: 1.0,
-        color_value: [0.0, 0.0, 0.0, 1.0]
-    };
+    depth:number = 0.0;
+    depth_function:DepthCompare = DepthCompare.EQUAL;
+    color:Array<number> = [];
     begin_renderpass(device:RenderDevice):boolean{
         const GL = (device.gl as WebGL2RenderingContext);
-        GL.clearColor(this.info.color_value[0], 
-            this.info.color_value[1], 
-            this.info.color_value[2], 
-            this.info.color_value[3]);
         let buffers:any = null;
-        if(this.info.color){
+        if(this.color.length == 4){
+            GL.clearColor(this.color[0], 
+                this.color[1], 
+                this.color[2], 
+                this.color[3]);
             buffers |= GL.COLOR_BUFFER_BIT;
         }
-        if(this.info.depth){
+        if(this.depth > 0.0){
             buffers |= GL.DEPTH_BUFFER_BIT;
-            GL.clearDepth(this.info.depth_value);
+            GL.clearDepth(this.depth);
             GL.enable(GL.DEPTH_TEST); 
-            GL.depthFunc(GL.LEQUAL);
+            switch(this.depth_function){
+                case DepthCompare.LESS:
+                    GL.depthFunc(GL.LESS);
+                    break;
+                case DepthCompare.LEQUAL:
+                    GL.depthFunc(GL.LEQUAL);
+                    break;
+                case DepthCompare.EQUAL:
+                    GL.depthFunc(GL.EQUAL);
+                    break;
+                case DepthCompare.GEQUAL:
+                    GL.depthFunc(GL.GEQUAL);
+                    break;
+                case DepthCompare.GREATER:
+                    GL.depthFunc(GL.GREATER);
+                    break;
+            }
         }
         if(buffers != null){
             GL.clear(buffers);

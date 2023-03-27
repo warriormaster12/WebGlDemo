@@ -1,4 +1,4 @@
-import { RenderDevice, Pipeline, RenderPass, RenderBuffer } from './renderer/render_device';
+import { RenderDevice, Pipeline, RenderPass, RenderBuffer, DepthCompare } from './renderer/render_device';
 import {mat4, vec3} from 'gl-matrix';
 import {Mesh} from './resources/mesh';
 
@@ -10,7 +10,7 @@ const device = new RenderDevice();
 const pipeline = new Pipeline();
 const main_renderpass = new RenderPass();
 
-const squares:Array<Mesh> = [];
+const cubes:Array<Mesh> = [];
 
 function main():void{
   device.init_renderer();
@@ -97,21 +97,22 @@ function main():void{
     23, // left
   ];
   const cube_pos:Array<vec3> = [
-    [-1.5, 0.0, -6.0],
-    [0.0, 0.6, -4.0],
+    [-1.6, 0.3, -6.0],
+    [0.0, -0.6, -4.0],
     [2.0, 0.0, -6.6]
   ];
   for(let i=0; i < 3; i++){
-    const square = new Mesh(device);
-    square.add_attribute(pipeline.attributes.vertexPosition, 3,positions);
-    square.add_attribute(pipeline.attributes.vertexColor, 4, colors);
-    square.add_indicies(indices);
-    square.position = cube_pos[i];
-    squares.push(square);
+    const cube = new Mesh(device);
+    cube.add_attribute(pipeline.attributes.vertexPosition, 3,positions);
+    cube.add_attribute(pipeline.attributes.vertexColor, 4, colors);
+    cube.add_indicies(indices);
+    cube.position = cube_pos[i];
+    cubes.push(cube);
   }
 
-  main_renderpass.info.color = true;
-  main_renderpass.info.depth = true;
+  main_renderpass.color = [0.1, 0.25, 0.5, 1];
+  main_renderpass.depth = 1.0;
+  main_renderpass.depth_function = DepthCompare.LEQUAL;
     
 }
 
@@ -135,29 +136,40 @@ function draw_scene(now:number){
     const projectionMatrix = mat4.create();
 
     mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-    for(let square of squares){
+    for(let i:number = 0; i < cubes.length; i++){
       const modelViewMatrix = mat4.create()
       pipeline.bind_pipeline(device);
-      square.bind_mesh();
+      cubes[i].bind_mesh();
       // Set the shader uniforms
       mat4.translate(
         modelViewMatrix,
         modelViewMatrix,
-        square.position
+        cubes[i].position
       );
-      
-      mat4.rotate(
-        modelViewMatrix,
-        modelViewMatrix,
-        cubeRotation * 0.7,
-        [0,1,0]
-      );
-      mat4.rotate(
-        modelViewMatrix,
-        modelViewMatrix,
-        cubeRotation * 0.7,
-        [1,0,0]
-      );
+      if(i==0){
+        mat4.rotate(
+          modelViewMatrix,
+          modelViewMatrix,
+          cubeRotation * 0.4,
+          [0,1,0]
+        );
+      }
+      else if(i==1){
+        mat4.rotate(
+          modelViewMatrix,
+          modelViewMatrix,
+          cubeRotation * 0.8,
+          [1,0,0]
+        );
+      }
+      else{
+        mat4.rotate(
+          modelViewMatrix,
+          modelViewMatrix,
+          cubeRotation * 0.2,
+          [0,0,1]
+        );
+      }
       
       mat4.scale(
         modelViewMatrix,
@@ -174,7 +186,7 @@ function draw_scene(now:number){
         false,
         modelViewMatrix
       );
-      square.draw_mesh();
+      cubes[i].draw_mesh();
     }
   }
   requestAnimationFrame(draw_scene);
