@@ -2,15 +2,15 @@ import { RenderDevice,RenderBuffer } from '../renderer/render_device';
 import {vec3} from 'gl-matrix';
 
 export class Mesh{
-    private device:any;
-    private attributes:{[attribute:string]:RenderBuffer} = {};
+    private device:RenderDevice;
+    private attributes:{[key:number]:RenderBuffer} = {};
     position:vec3 = vec3.create();
-    private indexBuffer:any = null;
+    private indexBuffer:RenderBuffer | null = null;
     constructor(device:RenderDevice){
         this.device = device;
     }
 
-    add_attribute(attribute:string, componentCount:number,data:Array<number>){
+    add_attribute(attribute:number, componentCount:number,data:Array<number>){
         this.attributes[attribute] = new RenderBuffer(this.device, componentCount,data);
     }
 
@@ -19,7 +19,8 @@ export class Mesh{
     }
 
     bind_mesh(){
-        for(const [key, value] of Object.entries(this.attributes)){
+        for(const [key_str, value] of Object.entries(this.attributes)){
+            const key:number = parseInt(key_str);
             value.bind_buffer(this.device,key);
         }
         if(this.indexBuffer){

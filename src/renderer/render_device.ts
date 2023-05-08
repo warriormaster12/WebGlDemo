@@ -1,70 +1,84 @@
 export class Pipeline{
     v_source:string = '';
     f_source:string = '';
-    attributes:{[key:string]:string} = {}
-    uniforms:{[key:string]:string} = {}
-    program:any;
+    attributes:{[key:string]:number} = {}
+    uniforms:{[key:string]:WebGLUniformLocation | null} = {}
+    program?:WebGLProgram | null;
 
 
-    private load_shader(device: RenderDevice, type:any, source:string):WebGLShader{
-        const SHADER:WebGLShader = device.gl.createShader(type);
+    private load_shader(device: RenderDevice, type:number, source:string):WebGLShader | null{
+        if(device.gl){
+            const shader:WebGLShader | null = device.gl.createShader(type);
 
-        device.gl.shaderSource(SHADER, source);
+            if(shader){
+                device.gl.shaderSource(shader, source);
 
-        device.gl.compileShader(SHADER);
+                device.gl.compileShader(shader);
 
-        if (!device.gl.getShaderParameter(SHADER, device.gl.COMPILE_STATUS)) {
-            alert(
-            `An error occurred compiling the shaders: ${device.gl.getShaderInfoLog(SHADER)}`
-            );
-            device.gl.deleteShader(SHADER);
-            return '';
+                if (!device.gl.getShaderParameter(shader, device.gl.COMPILE_STATUS)) {
+                    alert(
+                    `An error occurred compiling the shaders: ${device.gl.getShaderInfoLog(shader)}`
+                    );
+                    device.gl.deleteShader(shader);
+                    return '';
+                }
+                return shader;
+            }
         }
-
-        return SHADER;
+        return null;
     }
     add_vertex_attribute(device: RenderDevice, key:string,value:string){
-        this.attributes[key] = device.gl.getAttribLocation(this.program, value);
+        if(device.gl && this.program){
+            this.attributes[key] = device.gl.getAttribLocation(this.program, value);
+        }
     }
     add_uniform(device: RenderDevice, key:string,value:string){
-        this.uniforms[key] = device.gl.getUniformLocation(this.program, value);
+        if(device.gl && this.program){
+            this.uniforms[key] = device.gl.getUniformLocation(this.program, value);
+        }
     }
     create_graphics_pipeline(device: RenderDevice):void{
-        const V_SHADER = this.load_shader(device, device.gl.VERTEX_SHADER, this.v_source);
-        const F_SHADER = this.load_shader(device, device.gl.FRAGMENT_SHADER, this.f_source);
+        if(device.gl){
+            const v_shader:WebGLShader | null = this.load_shader(device, device.gl.VERTEX_SHADER, this.v_source);
+            const f_shader:WebGLShader | null = this.load_shader(device, device.gl.FRAGMENT_SHADER, this.f_source);
 
-        const PIPELINE:WebGLProgram = device.gl.createProgram();
-        device.gl.attachShader(PIPELINE, V_SHADER);
-        device.gl.attachShader(PIPELINE, F_SHADER);
-        device.gl.linkProgram(PIPELINE);
+            if(v_shader && f_shader){
+                const pipeline:WebGLProgram | null = device.gl.createProgram();
+                if(pipeline){
+                    device.gl.attachShader(pipeline, v_shader);
+                    device.gl.attachShader(pipeline, f_shader);
+                    device.gl.linkProgram(pipeline);
 
-        if (!device.gl.getProgramParameter(PIPELINE, device.gl.LINK_STATUS)) {
-            alert(
-            `Unable to initialize the shader program: ${device.gl.getProgramInfoLog(
-                PIPELINE
-            )}`
-            );
-        }else{
-            this.program = PIPELINE;
+                    if (!device.gl.getProgramParameter(pipeline, device.gl.LINK_STATUS)) {
+                        alert(
+                        `Unable to initialize the shader program: ${device.gl.getProgramInfoLog(
+                            pipeline
+                        )}`
+                        );
+                    }else{
+                        this.program = pipeline;
+                    }
+                }
+            }
         }
     }
 
     bind_pipeline(device:RenderDevice){
-        device.gl.useProgram(this.program);
+        if(device.gl && this.program){
+            device.gl.useProgram(this.program);
+        }
     }
 }
 
 export class RenderBuffer{
-    private buffer:any;
+    public data:Array<number> = [];
+    private buffer:WebGLBuffer | null;
     private componentCount:number = 0;
-    private data:Array<number> = [];
-    private indicies:boolean = false;
     constructor(device:RenderDevice,componentCount:number,data:Array<number>, indicies:boolean = false){
         const GL = (device.gl as WebGL2RenderingContext);
         this.buffer = GL.createBuffer();
         this.componentCount = componentCount;
         this.data = data;
-        this.indicies = indicies;
         if(indicies){
             GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.buffer);
             GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), GL.STATIC_DRAW);
@@ -73,7 +87,7 @@ export class RenderBuffer{
             GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(data), GL.STATIC_DRAW);
         }
     }
-    bind_buffer(device:RenderDevice,attribute:any){
+    bind_buffer(device:RenderDevice,attribute:number){
         const GL = (device.gl as WebGL2RenderingContext);
         const numComponents = this.componentCount;
         const type = GL.FLOAT;
@@ -93,7 +107,9 @@ export class RenderBuffer{
     }
 
     bind_index_buffer(device:RenderDevice){
-        device.gl.bindBuffer(device.gl.ELEMENT_ARRAY_BUFFER, this.buffer);
+        if(device.gl != null){
+            device.gl.bindBuffer(device.gl.ELEMENT_ARRAY_BUFFER, this.buffer);
+        }
     }
 
     get_buffer_data(){
@@ -114,76 +130,88 @@ export class RenderPass{
     depth_function:DepthCompare = DepthCompare.EQUAL;
     color:Array<number> = [];
     begin_renderpass(device:RenderDevice):boolean{
-        const GL = (device.gl as WebGL2RenderingContext);
-        let buffers:any = null;
-        if(this.color.length == 4){
-            GL.clearColor(this.color[0], 
-                this.color[1], 
-                this.color[2], 
-                this.color[3]);
-            buffers |= GL.COLOR_BUFFER_BIT;
-        }
-        if(this.depth > 0.0){
-            buffers |= GL.DEPTH_BUFFER_BIT;
-            GL.clearDepth(this.depth);
-            GL.enable(GL.DEPTH_TEST); 
-            switch(this.depth_function){
-                case DepthCompare.LESS:
-                    GL.depthFunc(GL.LESS);
-                    break;
-                case DepthCompare.LEQUAL:
-                    GL.depthFunc(GL.LEQUAL);
-                    break;
-                case DepthCompare.EQUAL:
-                    GL.depthFunc(GL.EQUAL);
-                    break;
-                case DepthCompare.GEQUAL:
-                    GL.depthFunc(GL.GEQUAL);
-                    break;
-                case DepthCompare.GREATER:
-                    GL.depthFunc(GL.GREATER);
-                    break;
+        if(device.gl){
+            let buffers:number = 0;
+            if(this.color.length == 4){
+                device.gl.clearColor(this.color[0], 
+                    this.color[1], 
+                    this.color[2], 
+                    this.color[3]);
+                buffers |= device.gl.COLOR_BUFFER_BIT;
+            }
+            if(this.depth > 0.0){
+                buffers |= device.gl.DEPTH_BUFFER_BIT;
+                device.gl.clearDepth(this.depth);
+                device.gl.enable(device.gl.DEPTH_TEST); 
+                switch(this.depth_function){
+                    case DepthCompare.LESS:
+                        device.gl.depthFunc(device.gl.LESS);
+                        break;
+                    case DepthCompare.LEQUAL:
+                        device.gl.depthFunc(device.gl.LEQUAL);
+                        break;
+                    case DepthCompare.EQUAL:
+                        device.gl.depthFunc(device.gl.EQUAL);
+                        break;
+                    case DepthCompare.GEQUAL:
+                        device.gl.depthFunc(device.gl.GEQUAL);
+                        break;
+                    case DepthCompare.GREATER:
+                        device.gl.depthFunc(device.gl.GREATER);
+                        break;
+                }
+            }
+            if(buffers > 0){
+                device.gl.clear(buffers);
+                return true;
+            }else{
+                console.log("skipping creation of renderpass", this);
+                return false;
             }
         }
-        if(buffers != null){
-            GL.clear(buffers);
-            return true;
-        }else{
-            console.log("skipping creation of renderpass", this);
-            return false;
-        }
+        return false;
     }
 }
 
 export class RenderDevice{
-    gl:any = null;
+    gl:WebGL2RenderingContext | null = null;
+    canvas:HTMLCanvasElement | null = document.querySelector('#glcanvas');
     init_renderer():void{
-        const CANVAS = document.querySelector('#glcanvas');
-        if (!(CANVAS instanceof HTMLCanvasElement)) {
+        if (!(this.canvas instanceof HTMLCanvasElement)) {
             throw new Error('No html canvas element.');
         }
         
         // WebGL rendering context
-        this.gl = CANVAS.getContext('webgl2');
+        this.gl = this.canvas.getContext('webgl2')!;
     
         if (!this.gl) {
             throw new Error('Unable to initialize WebGL.');
         }
     }
 
-    get_canvas_resolution():any{
+    get_canvas_resolution():{[key:string]:number}{
+        if(this.canvas){
+            return {
+                width: this.canvas.width,
+                height: this.canvas.height
+            };
+        }
         return {
-            width: this.gl.canvas.clientWidth,
-            height: this.gl.canvas.clientHeight
+            width: 0,
+            height: 0,
         };
     }
 
     draw(offset:number, vertexCount:number){
-        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
+        if (this.gl) {
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
+        }
     }
     
     draw_indexed(offset:number, vertexCount:number){
-        const type = this.gl.UNSIGNED_SHORT;
-        this.gl.drawElements(this.gl.TRIANGLES, vertexCount, type, offset);
+        if (this.gl) {
+            const type = this.gl.UNSIGNED_SHORT;
+            this.gl.drawElements(this.gl.TRIANGLES, vertexCount, type, offset);
+        }
     }
 }
