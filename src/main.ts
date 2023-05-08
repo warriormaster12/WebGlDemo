@@ -13,8 +13,6 @@ const main_renderpass = new RenderPass();
 const cubes:Array<Mesh> = [];
 
 function main():void{
-  device.init_renderer();
-  
   pipeline.v_source = exampleVsShader;
   pipeline.f_source = exampleFsShader;
   pipeline.create_graphics_pipeline(device);

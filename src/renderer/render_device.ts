@@ -3,68 +3,62 @@ export class Pipeline{
     f_source:string = '';
     attributes:{[key:string]:number} = {}
     uniforms:{[key:string]:WebGLUniformLocation | null} = {}
-    program?:WebGLProgram | null;
+    program:WebGLProgram | null = null;
 
 
     private load_shader(device: RenderDevice, type:number, source:string):WebGLShader | null{
-        if(device.gl){
-            const shader:WebGLShader | null = device.gl.createShader(type);
+        const shader:WebGLShader | null = device.gl.createShader(type);
 
-            if(shader){
-                device.gl.shaderSource(shader, source);
+        if(shader){
+            device.gl.shaderSource(shader, source);
 
-                device.gl.compileShader(shader);
+            device.gl.compileShader(shader);
 
-                if (!device.gl.getShaderParameter(shader, device.gl.COMPILE_STATUS)) {
-                    alert(
-                    `An error occurred compiling the shaders: ${device.gl.getShaderInfoLog(shader)}`
-                    );
-                    device.gl.deleteShader(shader);
-                    return '';
-                }
-                return shader;
+            if (!device.gl.getShaderParameter(shader, device.gl.COMPILE_STATUS)) {
+                alert(
+                `An error occurred compiling the shaders: ${device.gl.getShaderInfoLog(shader)}`
+                );
+                device.gl.deleteShader(shader);
+                return '';
             }
+            return shader;
         }
         return null;
     }
     add_vertex_attribute(device: RenderDevice, key:string,value:string){
-        if(device.gl && this.program){
+        if(this.program){
             this.attributes[key] = device.gl.getAttribLocation(this.program, value);
         }
     }
     add_uniform(device: RenderDevice, key:string,value:string){
-        if(device.gl && this.program){
+        if(this.program){
             this.uniforms[key] = device.gl.getUniformLocation(this.program, value);
         }
     }
     create_graphics_pipeline(device: RenderDevice):void{
-        if(device.gl){
-            const v_shader:WebGLShader | null = this.load_shader(device, device.gl.VERTEX_SHADER, this.v_source);
-            const f_shader:WebGLShader | null = this.load_shader(device, device.gl.FRAGMENT_SHADER, this.f_source);
+        const v_shader:WebGLShader | null = this.load_shader(device, device.gl.VERTEX_SHADER, this.v_source);
+        const f_shader:WebGLShader | null = this.load_shader(device, device.gl.FRAGMENT_SHADER, this.f_source);
+        const pipeline:WebGLProgram | null = device.gl.createProgram();
 
-            if(v_shader && f_shader){
-                const pipeline:WebGLProgram | null = device.gl.createProgram();
-                if(pipeline){
-                    device.gl.attachShader(pipeline, v_shader);
-                    device.gl.attachShader(pipeline, f_shader);
-                    device.gl.linkProgram(pipeline);
+        if(v_shader && f_shader && pipeline){
+            device.gl.attachShader(pipeline, v_shader);
+            device.gl.attachShader(pipeline, f_shader);
+            device.gl.linkProgram(pipeline);
 
-                    if (!device.gl.getProgramParameter(pipeline, device.gl.LINK_STATUS)) {
-                        alert(
-                        `Unable to initialize the shader program: ${device.gl.getProgramInfoLog(
-                            pipeline
-                        )}`
-                        );
-                    }else{
-                        this.program = pipeline;
-                    }
-                }
+            if (!device.gl.getProgramParameter(pipeline, device.gl.LINK_STATUS)) {
+                alert(
+                `Unable to initialize the shader program: ${device.gl.getProgramInfoLog(
+                    pipeline
+                )}`
+                );
+            }else{
+                this.program = pipeline;
             }
         }
     }
 
     bind_pipeline(device:RenderDevice){
-        if(device.gl && this.program){
+        if(this.program){
             device.gl.useProgram(this.program);
         }
     }
@@ -107,9 +101,7 @@ export class RenderBuffer{
     }
 
     bind_index_buffer(device:RenderDevice){
-        if(device.gl != null){
-            device.gl.bindBuffer(device.gl.ELEMENT_ARRAY_BUFFER, this.buffer);
-        }
+        device.gl.bindBuffer(device.gl.ELEMENT_ARRAY_BUFFER, this.buffer);
     }
 
     get_buffer_data(){
@@ -130,57 +122,54 @@ export class RenderPass{
     depth_function:DepthCompare = DepthCompare.EQUAL;
     color:Array<number> = [];
     begin_renderpass(device:RenderDevice):boolean{
-        if(device.gl){
-            let buffers:number = 0;
-            if(this.color.length == 4){
-                device.gl.clearColor(this.color[0], 
-                    this.color[1], 
-                    this.color[2], 
-                    this.color[3]);
-                buffers |= device.gl.COLOR_BUFFER_BIT;
-            }
-            if(this.depth > 0.0){
-                buffers |= device.gl.DEPTH_BUFFER_BIT;
-                device.gl.clearDepth(this.depth);
-                device.gl.enable(device.gl.DEPTH_TEST); 
-                switch(this.depth_function){
-                    case DepthCompare.LESS:
-                        device.gl.depthFunc(device.gl.LESS);
-                        break;
-                    case DepthCompare.LEQUAL:
-                        device.gl.depthFunc(device.gl.LEQUAL);
-                        break;
-                    case DepthCompare.EQUAL:
-                        device.gl.depthFunc(device.gl.EQUAL);
-                        break;
-                    case DepthCompare.GEQUAL:
-                        device.gl.depthFunc(device.gl.GEQUAL);
-                        break;
-                    case DepthCompare.GREATER:
-                        device.gl.depthFunc(device.gl.GREATER);
-                        break;
-                }
-            }
-            if(buffers > 0){
-                device.gl.clear(buffers);
-                return true;
-            }else{
-                console.log("skipping creation of renderpass", this);
-                return false;
+        let buffers:number = 0;
+        if(this.color.length == 4){
+            device.gl.clearColor(this.color[0], 
+                this.color[1], 
+                this.color[2], 
+                this.color[3]);
+            buffers |= device.gl.COLOR_BUFFER_BIT;
+        }
+        if(this.depth > 0.0){
+            buffers |= device.gl.DEPTH_BUFFER_BIT;
+            device.gl.clearDepth(this.depth);
+            device.gl.enable(device.gl.DEPTH_TEST); 
+            switch(this.depth_function){
+                case DepthCompare.LESS:
+                    device.gl.depthFunc(device.gl.LESS);
+                    break;
+                case DepthCompare.LEQUAL:
+                    device.gl.depthFunc(device.gl.LEQUAL);
+                    break;
+                case DepthCompare.EQUAL:
+                    device.gl.depthFunc(device.gl.EQUAL);
+                    break;
+                case DepthCompare.GEQUAL:
+                    device.gl.depthFunc(device.gl.GEQUAL);
+                    break;
+                case DepthCompare.GREATER:
+                    device.gl.depthFunc(device.gl.GREATER);
+                    break;
             }
         }
-        return false;
+        if(buffers > 0){
+            device.gl.clear(buffers);
+            return true;
+        }else{
+            console.log("skipping creation of renderpass", this);
+            return false;
+        }
     }
 }
 
 export class RenderDevice{
-    gl:WebGL2RenderingContext | null = null;
-    canvas:HTMLCanvasElement | null = document.querySelector('#glcanvas');
-    init_renderer():void{
+    gl:WebGL2RenderingContext;
+    canvas:HTMLCanvasElement | null;
+    constructor(){
+        this.canvas = document.querySelector('#glcanvas');
         if (!(this.canvas instanceof HTMLCanvasElement)) {
             throw new Error('No html canvas element.');
         }
-        
         // WebGL rendering context
         this.gl = this.canvas.getContext('webgl2')!;
     
@@ -203,25 +192,19 @@ export class RenderDevice{
     }
 
     upload_matri4x4f(location:WebGLUniformLocation | null, data:Float32List, transpose:boolean = false):void{
-        if(this.gl){
-            this.gl.uniformMatrix4fv(
-                location,
-                transpose,
-                data
-            );
-        }
+        this.gl.uniformMatrix4fv(
+            location,
+            transpose,
+            data
+        );
     }
 
     draw(offset:number, vertexCount:number){
-        if (this.gl) {
-            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
-        }
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
     }
     
     draw_indexed(offset:number, vertexCount:number){
-        if (this.gl) {
-            const type = this.gl.UNSIGNED_SHORT;
-            this.gl.drawElements(this.gl.TRIANGLES, vertexCount, type, offset);
-        }
+        const type = this.gl.UNSIGNED_SHORT;
+        this.gl.drawElements(this.gl.TRIANGLES, vertexCount, type, offset);
     }
 }
