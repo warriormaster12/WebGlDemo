@@ -176,19 +176,9 @@ function draw_scene(now:number){
         modelViewMatrix,
         [0.5,0.5,0.5]
       );
-      if(device.gl){
-        device.gl.uniformMatrix4fv(
-          pipeline.uniforms.projectionMatrix,
-          false,
-          projectionMatrix
-        );
-        device.gl.uniformMatrix4fv(
-          pipeline.uniforms.modelViewMatrix,
-          false,
-          modelViewMatrix
-        );
-        cubes[i].draw_mesh();
-      }
+      device.upload_matri4x4f(pipeline.uniforms.projectionMatrix,projectionMatrix);
+      device.upload_matri4x4f(pipeline.uniforms.modelViewMatrix,modelViewMatrix);
+      cubes[i].draw_mesh();
     }
   }
   requestAnimationFrame(draw_scene);

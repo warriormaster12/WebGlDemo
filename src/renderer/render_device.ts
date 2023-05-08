@@ -202,6 +202,16 @@ export class RenderDevice{
         };
     }
 
+    upload_matri4x4f(location:WebGLUniformLocation | null, data:Float32List, transpose:boolean = false):void{
+        if(this.gl){
+            this.gl.uniformMatrix4fv(
+                location,
+                transpose,
+                data
+            );
+        }
+    }
+
     draw(offset:number, vertexCount:number){
         if (this.gl) {
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, vertexCount);
