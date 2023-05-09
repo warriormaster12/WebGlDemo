@@ -1,24 +1,32 @@
+export enum ShaderStages{
+    VERTEX = 0,
+    FRAGMENT = 1
+    
+}
 export class Pipeline{
-    v_source:string = '';
-    f_source:string = '';
-    attributes:{[key:string]:number} = {}
-    uniforms:{[key:string]:WebGLUniformLocation | null} = {}
-    program:WebGLProgram | null = null;
+    public attributes:{[key:string]:number} = {}
+    public uniforms:{[key:string]:WebGLUniformLocation | null} = {}
+    private readonly program:WebGLProgram | null;
+    private readonly device:RenderDevice;
 
+    constructor(device:RenderDevice,){
+        this.device = device;
+        this.program = this.device.gl.createProgram();
+    }
 
-    private load_shader(device: RenderDevice, type:number, source:string):WebGLShader | null{
-        const shader:WebGLShader | null = device.gl.createShader(type);
+    private load_shader(type:number, source:string):WebGLShader | null{
+        const shader:WebGLShader | null = this.device.gl.createShader(type);
 
         if(shader){
-            device.gl.shaderSource(shader, source);
+            this.device.gl.shaderSource(shader, source);
 
-            device.gl.compileShader(shader);
+            this.device.gl.compileShader(shader);
 
-            if (!device.gl.getShaderParameter(shader, device.gl.COMPILE_STATUS)) {
+            if (!this.device.gl.getShaderParameter(shader, this.device.gl.COMPILE_STATUS)) {
                 alert(
-                `An error occurred compiling the shaders: ${device.gl.getShaderInfoLog(shader)}`
+                `An error occurred compiling the shaders: ${this.device.gl.getShaderInfoLog(shader)}`
                 );
-                device.gl.deleteShader(shader);
+                this.device.gl.deleteShader(shader);
                 return '';
             }
             return shader;
@@ -35,24 +43,32 @@ export class Pipeline{
             this.uniforms[key] = device.gl.getUniformLocation(this.program, value);
         }
     }
-    create_graphics_pipeline(device: RenderDevice):void{
-        const v_shader:WebGLShader | null = this.load_shader(device, device.gl.VERTEX_SHADER, this.v_source);
-        const f_shader:WebGLShader | null = this.load_shader(device, device.gl.FRAGMENT_SHADER, this.f_source);
-        const pipeline:WebGLProgram | null = device.gl.createProgram();
-
-        if(v_shader && f_shader && pipeline){
-            device.gl.attachShader(pipeline, v_shader);
-            device.gl.attachShader(pipeline, f_shader);
-            device.gl.linkProgram(pipeline);
-
-            if (!device.gl.getProgramParameter(pipeline, device.gl.LINK_STATUS)) {
+    create_graphics_pipeline(shader_stages:{[key in ShaderStages]:string}):void{
+        const shaders:Array<WebGLShader | null> = [];
+        for(const [key_str, value] of Object.entries(shader_stages)){
+            const key:ShaderStages = parseInt(key_str);
+            if(key == ShaderStages.VERTEX){
+                shaders.push(this.load_shader(this.device.gl.VERTEX_SHADER, value));
+            } else if(key == ShaderStages.FRAGMENT) {
+                shaders.push(this.load_shader(this.device.gl.FRAGMENT_SHADER, value));
+            }else{
+                console.warn("undefinied shader stage");
+            }
+        }
+        for(let i:number=0; i < shaders.length; i++){
+            const shader:WebGLShader | null = shaders[i];
+            if(shader && this.program){
+                this.device.gl.attachShader(this.program, shader);
+            }
+        }
+        if(this.program){
+            this.device.gl.linkProgram(this.program);
+            if (!this.device.gl.getProgramParameter(this.program, this.device.gl.LINK_STATUS)) {
                 alert(
-                `Unable to initialize the shader program: ${device.gl.getProgramInfoLog(
-                    pipeline
+                `Unable to initialize the shader program: ${this.device.gl.getProgramInfoLog(
+                    this.program
                 )}`
                 );
-            }else{
-                this.program = pipeline;
             }
         }
     }
@@ -163,8 +179,8 @@ export class RenderPass{
 }
 
 export class RenderDevice{
-    gl:WebGL2RenderingContext;
-    canvas:HTMLCanvasElement | null;
+    public readonly gl:WebGL2RenderingContext;
+    private readonly canvas:HTMLCanvasElement | null;
     constructor(){
         this.canvas = document.querySelector('#glcanvas');
         if (!(this.canvas instanceof HTMLCanvasElement)) {

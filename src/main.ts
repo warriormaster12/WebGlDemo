@@ -1,4 +1,4 @@
-import { RenderDevice, Pipeline, RenderPass, RenderBuffer, DepthCompare } from './renderer/render_device';
+import { RenderDevice, Pipeline, RenderPass, ShaderStages,DepthCompare } from './renderer/render_device';
 import {mat4, vec3} from 'gl-matrix';
 import {Mesh} from './resources/mesh';
 
@@ -7,15 +7,13 @@ import exampleFsShader from './shaders/example.frag';
 
 
 const device = new RenderDevice();
-const pipeline = new Pipeline();
+const pipeline = new Pipeline(device);
 const main_renderpass = new RenderPass();
 
 const cubes:Array<Mesh> = [];
 
 function main():void{
-  pipeline.v_source = exampleVsShader;
-  pipeline.f_source = exampleFsShader;
-  pipeline.create_graphics_pipeline(device);
+  pipeline.create_graphics_pipeline({[ShaderStages.VERTEX]:exampleVsShader, [ShaderStages.FRAGMENT]:exampleFsShader});
   pipeline.add_vertex_attribute(device, "vertexPosition", "aVertexPosition");
   pipeline.add_vertex_attribute(device, "vertexColor", "aVertexColor");
   pipeline.add_uniform(device, "projectionMatrix", "uProjectionMatrix");
